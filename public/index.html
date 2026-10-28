@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agenda de Contactos</title>
+  <style>
+    * { box-sizing: border-box; font-family: Segoe UI, Arial, sans-serif; }
+    body { margin: 0; background: #f1f4f9; color: #222; }
+    header { background: #232f3e; color: #fff; padding: 18px 24px; }
+    header h1 { margin: 0; font-size: 22px; }
+    header small { color: #ff9900; }
+    .servidor { background: #ff9900; color: #232f3e; padding: 8px 24px; font-weight: 600; font-size: 14px; }
+    main { max-width: 820px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border-radius: 10px; padding: 20px; box-shadow: 0 2px 6px rgba(0,0,0,.08); margin-bottom: 20px; }
+    form { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; }
+    input { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+    button { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn-add { background: #232f3e; color: #fff; }
+    .btn-edit { background: #e8eef7; color: #232f3e; }
+    .btn-del { background: #fde8e8; color: #b42318; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
+    th { color: #555; }
+    td:last-child { white-space: nowrap; }
+    .vacio { text-align: center; color: #888; padding: 20px; }
+    @media (max-width: 640px) { form { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📇 Agenda de Contactos</h1>
+    <small>Lab 11 · Virtualización en AWS · Atanacio</small>
+  </header>
+  <div class="servidor" id="servidor">Cargando datos del servidor...</div>
+
+  <main>
+    <div class="card">
+      <h3 id="tituloForm">Nuevo contacto</h3>
+      <form id="form">
+        <input id="nombre" placeholder="Nombre" required>
+        <input id="telefono" placeholder="Teléfono" required>
+        <input id="correo" placeholder="Correo">
+        <button class="btn-add" type="submit" id="btnGuardar">Agregar</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h3>Mis contactos</h3>
+      <table>
+        <thead><tr><th>Nombre</th><th>Teléfono</th><th>Correo</th><th></th></tr></thead>
+        <tbody id="tabla"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script>
+    let editando = null;
+
+    async function cargarServidor() {
+      const r = await fetch('/api/servidor');
+      const s = await r.json();
+      document.getElementById('servidor').textContent =
+        '🖥️ Servidor: ' + s.hostname + '  |  Sistema: ' + s.sistema;
+    }
+
+    async function cargar() {
+      const r = await fetch('/api/contactos');
+      const lista = await r.json();
+      const tabla = document.getElementById('tabla');
+      if (lista.length === 0) {
+        tabla.innerHTML = '<tr><td colspan="4" class="vacio">No hay contactos todavía</td></tr>';
+        return;
+      }
+      tabla.innerHTML = lista.map(c => `
+        <tr>
+          <td>${c.nombre}</td>
+          <td>${c.telefono}</td>
+          <td>${c.correo}</td>
+          <td>
+            <button class="btn-edit" onclick='editar(${JSON.stringify(c)})'>Editar</button>
+            <button class="btn-del" onclick="eliminar(${c.id})">Eliminar</button>
+          </td>
+        </tr>`).join('');
+    }
+
+    function editar(c) {
+      editando = c.id;
+      nombre.value = c.nombre;
+      telefono.value = c.telefono;
+      correo.value = c.correo;
+      document.getElementById('tituloForm').textContent = 'Editar contacto';
+      document.getElementById('btnGuardar').textContent = 'Guardar';
+    }
+
+    async function eliminar(id) {
+      await fetch('/api/contactos/' + id, { method: 'DELETE' });
+      cargar();
+    }
+
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const datos = { nombre: nombre.value, telefono: telefono.value, correo: correo.value };
+      if (editando) {
+        await fetch('/api/contactos/' + editando, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
+        });
+      } else {
+        await fetch('/api/contactos', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datos)
+        });
+      }
+      editando = null;
+      e.target.reset();
+      document.getElementById('tituloForm').textContent = 'Nuevo contacto';
+      document.getElementById('btnGuardar').textContent = 'Agregar';
+      cargar();
+    });
+
+    cargarServidor();
+    cargar();
+  </script>
+</body>
+</html>

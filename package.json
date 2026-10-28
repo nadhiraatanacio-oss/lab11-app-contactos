@@ -1,0 +1,12 @@
+{
+  "name": "app-contactos",
+  "version": "1.0.0",
+  "description": "Agenda de contactos - Lab 11 Virtualizacion (Atanacio)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
